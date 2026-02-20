@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}Repositories{% endblock %}
+
+{% block body %}
+<ul>
+    {% for repository in repositories %}
+        <li><a href="tags/{{ repository }}">{{ repository }}</a></li>
+    {% endfor %}
+</ul>
+{% endblock %}
