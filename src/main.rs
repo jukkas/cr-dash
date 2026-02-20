@@ -11,10 +11,13 @@ use std::env;
 use log::info;
 //use sqlx::SqlitePool;
 
+use base64::{self, Engine, prelude::BASE64_STANDARD};
 use std::time::Instant;
 use tower_http::services::ServeDir;
+use tower_sessions_cookie_store::{CookieSessionConfig, CookieSessionManagerLayer, Key, SameSite};
 
 mod containers;
+mod github;
 
 // Avoid musl's default allocator due to lackluster performance
 // https://nickb.dev/blog/default-musl-allocator-considered-harmful-to-performance
@@ -26,21 +29,31 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 async fn main() {
     dotenv().ok();
     env_logger::init();
-    //let db_url = env::var("MASTO_SQLITE_URL").unwrap_or("sqlite://masto-lurker.db".to_string());
     let port = env::var("APP_PORT").unwrap_or("3000".to_string());
-
-    //let db_pool = SqlitePool::connect(&db_url).await.unwrap();
 
     let s404_service = handle_404.into_service();
     let serve_dir = ServeDir::new("static").not_found_service(s404_service);
 
+    // Session
+    let session_key =
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==";
+    let session_key = std::env::var("SESSION_KEY").unwrap_or(session_key.to_string());
+    println!("session_key: {session_key}");
+    let session_key = BASE64_STANDARD.decode(session_key.as_bytes()).expect("Failed to decode SESSION_KEY");
+
+    // let session_key = Key::generate();
+    let session_key = Key::from(&session_key);
+    let session_config = CookieSessionConfig::default().with_secure(false).with_same_site(SameSite::Lax);
+
     let app = Router::new()
         .route("/health", get(empty))
-        //.route("/greet/{name}", get(containers::greet))
-        .route("/catalog", get(containers::catalog))
+        .route("/", get(containers::catalog))
         .route("/tags/{*path}", get(containers::tags))
+        .route("/login", get(github::login))
+        .route("/callback", get(github::callback))
         .fallback_service(serve_dir)
         //.with_state(db_pool)
+        .layer(CookieSessionManagerLayer::private(session_key).with_config(session_config))
         .layer(
             tower::ServiceBuilder::new().layer(axum::middleware::from_fn(simple_log_middleware)),
         );

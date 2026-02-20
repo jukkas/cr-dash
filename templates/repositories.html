@@ -3,6 +3,8 @@
 {% block title %}Repositories{% endblock %}
 
 {% block body %}
+<h1>Images</h1>
+<header>{{ user }}</header>
 <ul>
     {% for repository in repositories %}
         <li><a href="tags/{{ repository }}">{{ repository }}</a></li>
