@@ -89,8 +89,13 @@ pub async fn tags(Path(path): Path<String>, session: Session) -> impl IntoRespon
         .expect("Failed to send request to CR");
     let tags: Tags = response.json().await.expect("Failed to parse response");
     log::info!("Fetched tags: {:?}", tags);
-    HtmlTemplate(tags).into_response()
+    // Sort tags alphabetically, in reverse order (newest first)
+    let mut tags = tags.tags;
+    tags.sort_by(|a, b| b.cmp(a));
+
+    HtmlTemplate(Tags { tags }).into_response()
 }
+
 /******************* Askama -> Axum response ****************/
 struct HtmlTemplate<T>(T);
 
