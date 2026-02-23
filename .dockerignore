@@ -1,0 +1,10 @@
+.env
+/target
+*.md
+*.db
+.vscode/
+tmp-*
+*.tmp
+.gitignore
+# For now
+Cargo.lock
