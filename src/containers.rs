@@ -59,6 +59,7 @@ pub async fn catalog(session: Session) -> impl IntoResponse {
 #[derive(Deserialize, Debug, Template)]
 #[template(path = "tags.html")]
 struct Tags {
+    repository: String,
     tags: Vec<String>,
 }
 
@@ -87,13 +88,20 @@ pub async fn tags(Path(path): Path<String>, session: Session) -> impl IntoRespon
         .send()
         .await
         .expect("Failed to send request to CR");
-    let tags: Tags = response.json().await.expect("Failed to parse response");
-    log::info!("Fetched tags: {:?}", tags);
+    
+    #[derive(Deserialize, Debug)]
+    struct TagsResponse {
+        //name: String,
+        tags: Vec<String>,
+    }
+    
+    let tags_res: TagsResponse = response.json().await.expect("Failed to parse response");
+    log::info!("Fetched tags: {:?}", tags_res);
     // Sort tags alphabetically, in reverse order (newest first)
-    let mut tags = tags.tags;
+    let mut tags = tags_res.tags;
     tags.sort_by(|a, b| b.cmp(a));
 
-    HtmlTemplate(Tags { tags }).into_response()
+    HtmlTemplate(Tags { repository: path, tags }).into_response()
 }
 
 /******************* Askama -> Axum response ****************/

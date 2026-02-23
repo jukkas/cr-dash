@@ -1,8 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}Container registry dashboard{% endblock %}
+{% block title %}Login{% endblock %}
 
 {% block body %}
-<h1>Container registry dashboard</h1>
-<p><a href="login">Login using Github</a> When asked, grant access to organisation</p>
+<div class="login-container">
+    <h1>Container Registry Dashboard</h1>
+    <p class="secondary">Private</p>
+    <a href="login" class="github-button">
+        Login using GitHub
+    </a>
+    <p class="secondary-info" style="margin-top: 1rem; font-size: 0.8rem;">When asked, grant access to your organization (press Grant before Authorize).</p>
+</div>
 {% endblock %}

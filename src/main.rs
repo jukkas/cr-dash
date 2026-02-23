@@ -67,7 +67,7 @@ async fn main() {
 }
 
 async fn handle_404() -> (StatusCode, &'static str) {
-    (StatusCode::NOT_FOUND, "This is 404!!!!!")
+    (StatusCode::NOT_FOUND, "Not found 404 !!!!!")
 }
 // Empty response
 async fn empty() {}

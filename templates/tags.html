@@ -1,11 +1,20 @@
 {% extends "base.html" %}
 
-{% block title %}Tags{% endblock %}
+{% block title %}Tags for {{ repository }}{% endblock %}
 
 {% block body %}
-<ul>
-    {% for tag in tags %}
-        <li>{{ tag }}</li>
-    {% endfor %}
-</ul>
+<section>
+    <!-- <a href="/" class="secondary" style="display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; text-decoration: none;">
+        &larr; Back to Catalog
+    </a> -->
+    <h2>Tags for <code>{{ repository }}</code></h2>
+    <p>Available versions for this repository.</p>
+    <ul class="tag-list">
+        {% for tag in tags %}
+            <li class="tag-item">
+                <code>{{ tag }}</code>
+            </li>
+        {% endfor %}
+    </ul>
+</section>
 {% endblock %}

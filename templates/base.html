@@ -1,11 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>{% block title %}{{ title }}{% endblock %}</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ title }}{% endblock %} | Container Registry Dashboard</title>
+    <link rel="stylesheet" href="/style.css">
     {% block head %}{% endblock %}
   </head>
   <body>
+    <header>
+      <nav class="container">
+        <div class="brand"><strong>Container Registry Dashboard</strong></div>
+        <ul class="nav-links">
+          <li><a href="/">Main</a></li>
+          {% block nav_items %}{% endblock %}
+        </ul>
+      </nav>
+    </header>
+
+    <main class="container">
       {% block body %}<p>Placeholder content</p>{% endblock %}
+    </main>
+
+    <footer class="container">
+      <p>&copy; 2026 Jukka</p>
+    </footer>
   </body>
 </html>

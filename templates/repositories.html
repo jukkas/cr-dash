@@ -2,12 +2,22 @@
 
 {% block title %}Repositories{% endblock %}
 
+{% block nav_items %}
+<li><span class="secondary">Logged in as: <strong>{{ user }}</strong></span></li>
+{% endblock %}
+
 {% block body %}
-<h1>Images</h1>
-<header>{{ user }}</header>
-<ul>
-    {% for repository in repositories %}
-        <li><a href="tags/{{ repository }}">{{ repository }}</a></li>
-    {% endfor %}
-</ul>
+<section>
+    <h2>Container Images</h2>
+    <p>Available repositories in your registry.</p>
+    <ul class="repo-list">
+        {% for repository in repositories %}
+            <li class="repo-item">
+                <a class="repo-link" href="tags/{{ repository }}">
+                    {{ repository }}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+</section>
 {% endblock %}
