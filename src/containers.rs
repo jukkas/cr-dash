@@ -1,11 +1,13 @@
 use askama::Template;
 use axum::{
-    extract::Path,
+    extract::{Path, State},
     http::StatusCode,
     response::{Html, IntoResponse, Response},
 };
 use tower_sessions_cookie_store::Session;
 use serde::{Deserialize};
+
+use std::time::{Duration, Instant};
 
 #[derive(Template)]
 #[template(path = "public.html")]
@@ -23,8 +25,13 @@ struct Catalog {
     repositories: Vec<String>,
 }
 
+#[derive(Default, Debug)]
+pub struct CachedCatalog {
+    refreshed_at: Option<Instant>,
+    repositories: Vec<String>,
+}
 
-pub async fn catalog(session: Session) -> impl IntoResponse {
+pub async fn catalog(State(state): State<crate::AppState>, session: Session) -> impl IntoResponse {
 
     let user = match session.get::<String>("user").await {
         Ok(user) => user,
@@ -42,15 +49,52 @@ pub async fn catalog(session: Session) -> impl IntoResponse {
 
     log::info!("catalog: User in session: {}", user);
 
+    // Cache catalog for 5 minutes to reduce load on CR
+    {
+        let mut cached_catalog = state.cached_catalog.lock().unwrap();
+        if let Some(refreshed_at) = cached_catalog.refreshed_at {
+            if refreshed_at.elapsed() < Duration::from_secs(300) {
+                log::info!("Using cached catalog");
+                let template = Repositories { user, repositories: cached_catalog.repositories.clone() };
+                return HtmlTemplate(template).into_response();
+            }
+        }
+    }
+
+    // Fetch repositories/catalog from CR
     let url = std::env::var("CR_URL").expect("CR_URL must be set");
     let client = reqwest::Client::new();
+
     let response = client.get(&format!("{url}/v2/_catalog"))
         .basic_auth(std::env::var("CR_USERNAME").expect("CR_USERNAME must be set"), Some(std::env::var("CR_PASSWORD").expect("CR_PASSWORD must be set")))
         .send()
-        .await
-        .expect("Failed to send request to CR");
-    let catalog: Catalog = response.json().await.expect("Failed to parse response");
+        .await;
+
+    let response = match response {
+        Ok(resp) => resp,
+        Err(e) => {
+            log::error!("catalog: Failed to send request to CR: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch catalog").into_response();
+        }
+    };
+
+    let catalog: Catalog = match response.json().await {
+        Ok(catalog) => catalog,
+        Err(e) => {
+            log::error!("catalog: Failed to parse response: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to parse catalog response").into_response();
+        }
+    };
     log::info!("Fetched catalog: {:?}", catalog);
+
+    // Update cache
+    {
+        let mut cached_catalog = state.cached_catalog.lock().unwrap();
+        cached_catalog.refreshed_at = Some(Instant::now());
+        cached_catalog.repositories = catalog.repositories.clone();
+    }
+
+
     let template = Repositories { user, repositories: catalog.repositories };
     HtmlTemplate(template).into_response()
 }

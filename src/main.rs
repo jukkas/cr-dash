@@ -1,9 +1,5 @@
 use axum::{
-    Router,
-    body::Body,
-    handler::HandlerWithoutStateExt,
-    http::{self, Request, Response, StatusCode},
-    routing::{get},
+    Router, body::Body, handler::HandlerWithoutStateExt, http::{self, Request, Response, StatusCode}, response::IntoResponse, routing::get
 };
 
 use dotenvy::dotenv;
@@ -15,6 +11,7 @@ use base64::{self, Engine, prelude::BASE64_STANDARD};
 use std::time::Instant;
 use tower_http::services::ServeDir;
 use tower_sessions_cookie_store::{CookieSessionConfig, CookieSessionManagerLayer, Key, SameSite};
+use std::sync::{Arc, Mutex};
 
 mod containers;
 mod github;
@@ -24,6 +21,11 @@ mod github;
 #[cfg(target_env = "musl")]
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
+#[derive(Clone, Default)]
+pub struct AppState {
+    cached_catalog: Arc<Mutex<containers::CachedCatalog>>,
+}
 
 #[tokio::main]
 async fn main() {
@@ -45,6 +47,8 @@ async fn main() {
     let session_key = Key::from(&session_key);
     let session_config = CookieSessionConfig::default().with_secure(false).with_same_site(SameSite::Lax);
 
+    let app_state = AppState::default();
+
     let app = Router::new()
         .route("/health", get(empty))
         .route("/", get(containers::catalog))
@@ -52,7 +56,7 @@ async fn main() {
         .route("/login", get(github::login))
         .route("/callback", get(github::callback))
         .fallback_service(serve_dir)
-        //.with_state(db_pool)
+        .with_state(app_state)
         .layer(CookieSessionManagerLayer::private(session_key).with_config(session_config))
         .layer(
             tower::ServiceBuilder::new().layer(axum::middleware::from_fn(simple_log_middleware)),
