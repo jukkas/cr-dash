@@ -39,6 +39,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Add mask
+        run: |
+          echo "::add-mask::${{ secrets.MASKED_VALUE }}"
+
+
       - name: Checkout code
         uses: actions/checkout@v4
 

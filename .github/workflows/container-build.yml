@@ -20,6 +20,10 @@ jobs:
       image_tag: ${{ steps.image-tag.outputs.tag }}
 
     steps:
+      - name: Add mask
+        run: |
+          echo "::add-mask::${{ secrets.MASKED_VALUE }}"
+
       - name: Checkout code
         uses: actions/checkout@v4
 
