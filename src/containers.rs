@@ -49,19 +49,19 @@ pub async fn catalog(State(state): State<crate::AppState>, session: Session) -> 
 
     log::info!("catalog: User in session: {}", user);
 
-    // Cache catalog for 5 minutes to reduce load on CR
+    // Cache repositories list for 5 minutes to reduce load on CR
     {
-        let mut cached_catalog = state.cached_catalog.lock().unwrap();
+        let cached_catalog = state.cached_catalog.lock().unwrap();
         if let Some(refreshed_at) = cached_catalog.refreshed_at {
             if refreshed_at.elapsed() < Duration::from_secs(300) {
-                log::info!("Using cached catalog");
+                log::info!("Using cached repositories");
                 let template = Repositories { user, repositories: cached_catalog.repositories.clone() };
                 return HtmlTemplate(template).into_response();
             }
         }
     }
 
-    // Fetch repositories/catalog from CR
+    // Fetch repositories from CR
     let url = std::env::var("CR_URL").expect("CR_URL must be set");
     let client = reqwest::Client::new();
 
@@ -74,7 +74,7 @@ pub async fn catalog(State(state): State<crate::AppState>, session: Session) -> 
         Ok(resp) => resp,
         Err(e) => {
             log::error!("catalog: Failed to send request to CR: {}", e);
-            return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch catalog").into_response();
+            return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch repositories").into_response();
         }
     };
 
@@ -82,10 +82,10 @@ pub async fn catalog(State(state): State<crate::AppState>, session: Session) -> 
         Ok(catalog) => catalog,
         Err(e) => {
             log::error!("catalog: Failed to parse response: {}", e);
-            return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to parse catalog response").into_response();
+            return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to parse registry response").into_response();
         }
     };
-    log::info!("Fetched catalog: {:?}", catalog);
+    log::info!("Fetched catalog/repositories: {:?}", catalog);
 
     // Update cache
     {

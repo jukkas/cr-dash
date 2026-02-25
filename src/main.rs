@@ -1,5 +1,5 @@
 use axum::{
-    Router, body::Body, handler::HandlerWithoutStateExt, http::{self, Request, Response, StatusCode}, response::IntoResponse, routing::get
+    Router, body::Body, handler::HandlerWithoutStateExt, http::{self, Request, Response, StatusCode}, routing::get
 };
 
 use dotenvy::dotenv;

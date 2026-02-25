@@ -1,12 +1,13 @@
 # CR-dash
 
-A small Rust web dashboard for exploring a Docker/OCI registry (Catalog + Tags) with GitHub OAuth access control.
+A small Rust web dashboard for exploring a Docker/OCI registry (Distribution Registry) Repositories + Tags with GitHub OAuth access control.
+Login access is limited to single configurablr Github Organization.
 
 Key points
 - Built with `axum` for the HTTP server and routing.
 - Templates rendered with `askama` (see `templates/`).
 - Uses GitHub OAuth to restrict access to members of a specified organization.
-- Fetches catalog and tags from a container registry (CR) using basic auth and caches results for a short period.
+- Fetches repositories and tags from a container registry (CR) using basic auth and caches results for a short period.
 - Session state stored in secure cookies (cookie sessions).
 
 Features
@@ -67,7 +68,7 @@ Development notes
 
 - Templates are located in the `templates/` directory. The visible pages are built with `askama` templates: `public.html`, `repositories.html`, `tags.html`, and `base.html`.
 - Static assets (CSS, JS) are served from the `static/` directory.
-- The app caches the fetched catalog for 5 minutes to reduce upstream load (see `src/containers.rs`).
+- The app caches the list of repositories for 5 minutes to reduce upstream load (see `src/containers.rs`).
 - Authentication flow lives in `src/github.rs` and uses GitHub OAuth to fetch the authenticated user's orgs.
 
 Security
@@ -78,7 +79,7 @@ Security
 Where to look in the code
 
 - Server and routing: `src/main.rs`
-- Registry catalog / tags handling: `src/containers.rs`
+- Registry repositories / tags handling: `src/containers.rs`
 - GitHub OAuth and callback handling: `src/github.rs`
 - Templates: `templates/`
 
