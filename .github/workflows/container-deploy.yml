@@ -1,0 +1,84 @@
+name: Deploy Container Image to Application Server
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: "Image tag to deploy (leave empty for latest)"
+        required: false
+        type: string
+    secrets:
+      SERVER_HOST:
+        required: true
+      SERVER_USER:
+        required: true
+      SERVER_SSH_KEY:
+        required: true
+      # REGISTRY_USERNAME:
+      #   required: true
+      # REGISTRY_PASSWORD:
+      #   required: true
+
+      ## Secrets for override.env file
+      SECRET_MESSAGE_FROM_GITHUB_SECRETS:
+        required: false
+
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag to deploy (leave empty for latest)"
+        required: false
+
+env:
+  IMAGE_NAME: ${{ vars.APPLICATION_NAME }}
+  CONTAINER_NAME: ${{ vars.APPLICATION_NAME }}
+  CONTAINER_PORT_MAPPING: 127.0.0.1:3073:3000
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Restore latest build tag from cache
+        uses: actions/cache@v4
+        with:
+          path: .github/build_tag
+          key: deploy-restore-${{ github.run_id }}
+          restore-keys: |
+            build-tag-
+
+      - name: Determine image tag
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            # Got tag from workflow input
+            TAG="${{ inputs.tag }}"
+          else
+            # Use tag from previous build stored in cache
+            if [ ! -f .github/build_tag ]; then
+              echo "No build tag found from cache" && exit 1
+            fi
+            TAG=$(cat .github/build_tag)
+          fi
+          echo "TAG=$TAG" >> $GITHUB_ENV
+          echo "Deploying image tag: $TAG"
+
+      - name: SSH deploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            #docker login ${{ vars.REGISTRY_HOSTNAME }} -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }}
+            docker pull ${{ vars.REGISTRY_HOSTNAME }}/jukka/${{ env.IMAGE_NAME }}:${{ env.TAG }}
+            docker stop ${{ env.CONTAINER_NAME }} || true
+            docker rm ${{ env.CONTAINER_NAME }} || true
+            docker run -d \
+              --name ${{ env.CONTAINER_NAME }} \
+              --restart unless-stopped \
+              -p ${{ env.CONTAINER_PORT_MAPPING }} \
+              --env-file /deploy/${{ vars.APPLICATION_NAME }}/application.env \
+              ${{ vars.REGISTRY_HOSTNAME }}/jukka/${{ env.IMAGE_NAME }}:${{ env.TAG }}
