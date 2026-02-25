@@ -1,7 +1,7 @@
 # CR-dash
 
 A small Rust web dashboard for exploring a Docker/OCI registry (Distribution Registry) Repositories + Tags with GitHub OAuth access control.
-Login access is limited to single configurablr Github Organization.
+Login access is limited to single configurable Github Organization.
 
 Key points
 - Built with `axum` for the HTTP server and routing.

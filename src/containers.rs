@@ -65,12 +65,15 @@ pub async fn catalog(State(state): State<crate::AppState>, session: Session) -> 
     let url = std::env::var("CR_URL").expect("CR_URL must be set");
     let client = reqwest::Client::new();
 
-    let response = client.get(&format!("{url}/v2/_catalog"))
-        .basic_auth(std::env::var("CR_USERNAME").expect("CR_USERNAME must be set"), Some(std::env::var("CR_PASSWORD").expect("CR_PASSWORD must be set")))
-        .send()
-        .await;
+    let mut request = client.get(&format!("{url}/v2/_catalog"));
+    if let (Ok(username), Ok(password)) = (std::env::var("CR_USERNAME"), std::env::var("CR_PASSWORD")) {
+        log::debug!("Using basic auth for CR");
+        request = request.basic_auth(username, Some(password));
+    } else {
+        log::debug!("CR_USERNAME or CR_PASSWORD not set, skipping basic auth");
+    }
 
-    let response = match response {
+    let response = match request.send().await {
         Ok(resp) => resp,
         Err(e) => {
             log::error!("catalog: Failed to send request to CR: {}", e);
@@ -127,11 +130,21 @@ pub async fn tags(Path(path): Path<String>, session: Session) -> impl IntoRespon
     log::info!("Fetching tags for repository: {}", path);
     let url = std::env::var("CR_URL").expect("CR_URL must be set");
     let client = reqwest::Client::new();
-    let response = client.get(&format!("{url}/v2/{path}/tags/list"))
-        .basic_auth(std::env::var("CR_USERNAME").expect("CR_USERNAME must be set"), Some(std::env::var("CR_PASSWORD").expect("CR_PASSWORD must be set")))
-        .send()
-        .await
-        .expect("Failed to send request to CR");
+
+    let mut request = client.get(&format!("{url}/v2/{path}/tags/list"));
+    if let (Ok(username), Ok(password)) = (std::env::var("CR_USERNAME"), std::env::var("CR_PASSWORD")) {
+        log::debug!("Using basic auth for CR");
+        request = request.basic_auth(username, Some(password));
+    } else {
+        log::debug!("CR_USERNAME or CR_PASSWORD not set, skipping basic auth");
+    }
+    let response = match request.send().await {
+        Ok(resp) => resp,
+        Err(e) => {
+            log::error!("catalog: Failed to send request to CR: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch tags").into_response();
+        }
+    };
     
     #[derive(Deserialize, Debug)]
     struct TagsResponse {
@@ -139,7 +152,13 @@ pub async fn tags(Path(path): Path<String>, session: Session) -> impl IntoRespon
         tags: Vec<String>,
     }
     
-    let tags_res: TagsResponse = response.json().await.expect("Failed to parse response");
+    let tags_res: TagsResponse = match response.json().await {
+        Ok(tags) => tags,
+        Err(e) => {
+            log::error!("tags: Failed to parse response: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to parse registry response").into_response();
+        }
+    };
     log::info!("Fetched tags: {:?}", tags_res);
     // Sort tags alphabetically, in reverse order (newest first)
     let mut tags = tags_res.tags;
