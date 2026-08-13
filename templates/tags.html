@@ -4,17 +4,86 @@
 
 {% block body %}
 <section>
-    <!-- <a href="/" class="secondary" style="display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; text-decoration: none;">
-        &larr; Back to Repositories
-    </a> -->
+    <a href="/" class="back-link">&larr; Back to Repositories</a>
     <h2>Tags for <code>{{ repository }}</code></h2>
     <p>Available versions for this repository.</p>
-    <ul class="tag-list">
-        {% for tag in tags %}
-            <li class="tag-item">
-                <code>{{ tag }}</code>
-            </li>
-        {% endfor %}
-    </ul>
+
+    {% if let Some(msg) = message %}
+    <div class="alert alert-success">
+        {{ msg }}
+    </div>
+    {% endif %}
+
+    {% if let Some(err) = error %}
+    <div class="alert alert-error">
+        {{ err }}
+    </div>
+    {% endif %}
+
+    <form method="POST" action="/tags/{{ repository }}" id="delete-form" onsubmit="return confirmDelete(event)">
+        {% if !tags.is_empty() %}
+        <div class="actions-bar">
+            <label class="select-all-label">
+                <input type="checkbox" id="select-all" onclick="toggleSelectAll(this)"> Select All
+            </label>
+            <button type="submit" id="delete-btn" class="btn btn-danger" disabled>
+                Delete Selected (<span id="selected-count">0</span>)
+            </button>
+        </div>
+        {% endif %}
+
+        <ul class="tag-list">
+            {% if tags.is_empty() %}
+                <li class="tag-item empty-state">No tags found for this repository.</li>
+            {% else %}
+                {% for tag in tags %}
+                    <li class="tag-item">
+                        <label class="tag-label">
+                            <input type="checkbox" name="tags" value="{{ tag }}" class="tag-checkbox" onchange="updateSelectedCount()">
+                            <code>{{ tag }}</code>
+                        </label>
+                    </li>
+                {% endfor %}
+            {% endif %}
+        </ul>
+    </form>
 </section>
+
+<script>
+function toggleSelectAll(master) {
+    const checkboxes = document.querySelectorAll('.tag-checkbox');
+    checkboxes.forEach(cb => cb.checked = master.checked);
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const checked = document.querySelectorAll('.tag-checkbox:checked');
+    const count = checked.length;
+    const btn = document.getElementById('delete-btn');
+    const countSpan = document.getElementById('selected-count');
+    const selectAll = document.getElementById('select-all');
+    const total = document.querySelectorAll('.tag-checkbox').length;
+
+    if (countSpan) countSpan.textContent = count;
+    if (btn) btn.disabled = count === 0;
+    if (selectAll && total > 0) {
+        selectAll.checked = count === total;
+        selectAll.indeterminate = count > 0 && count < total;
+    }
+}
+
+function confirmDelete(e) {
+    const checked = document.querySelectorAll('.tag-checkbox:checked');
+    if (checked.length === 0) {
+        e.preventDefault();
+        return false;
+    }
+    const confirmMsg = `Are you sure you want to delete ${checked.length} selected tag(s) from '{{ repository }}'? This action cannot be undone.`;
+    if (!confirm(confirmMsg)) {
+        e.preventDefault();
+        return false;
+    }
+    return true;
+}
+</script>
 {% endblock %}

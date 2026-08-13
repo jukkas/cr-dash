@@ -19,6 +19,7 @@ askama = "0.15"
 tower-sessions = "0.14.0"
 tower-sessions-cookie-store = { version = "0.5", features = ["private"] }
 serde_urlencoded = "0.7"
+serde_html_form = "0.2"
 base64 = "0.22"
 
 [target.'cfg(target_env = "musl")'.dependencies]

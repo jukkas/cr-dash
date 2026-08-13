@@ -52,7 +52,7 @@ async fn main() {
     let app = Router::new()
         .route("/health", get(empty))
         .route("/", get(containers::catalog))
-        .route("/tags/{*path}", get(containers::tags))
+        .route("/tags/{*path}", get(containers::tags).post(containers::delete_tags))
         .route("/login", get(github::login))
         .route("/callback", get(github::callback))
         .fallback_service(serve_dir)
