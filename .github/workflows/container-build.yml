@@ -25,10 +25,10 @@ jobs:
           echo "::add-mask::${{ secrets.MASKED_VALUE }}"
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Log in to registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ vars.REGISTRY_HOSTNAME }}
           username: ${{ secrets.REGISTRY_USERNAME }}
@@ -45,13 +45,13 @@ jobs:
           echo "Image tag: $TAG"
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile
@@ -60,7 +60,7 @@ jobs:
           tags: ${{ vars.REGISTRY_HOSTNAME }}/jukka/${{ env.IMAGE_NAME }}:${{ steps.image-tag.outputs.tag }}
 
       - name: Save counter to cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .github/build_tag
           # Unique key for each build so it overwrites with new tag
